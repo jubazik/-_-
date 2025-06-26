@@ -1,3 +1,4 @@
+from django.contrib.auth.base_user import BaseUserManager
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
@@ -11,7 +12,7 @@ class CustomUser(AbstractUser):
         ('IP', 'ИП'),
     ]
     view = models.CharField(max_length=25, choices=VIEW, blank=True, verbose_name='вид')
-    name_firma = models.CharField(max_length=150, verbose_name='Наименование', blank=True, null=True),
+    name_firma = models.CharField(max_length=150, verbose_name='Наименование', blank=True, null=True)
     inn = models.CharField(
         verbose_name='ИНН',
         max_length=12,  # Максимум 12 символов для физлиц/ИП
@@ -36,7 +37,6 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return f"фирма: {self.email} - директор: {self.director}"
-# Create your models here.
 
 
 
@@ -46,3 +46,14 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f'{self.user.email}: Profile'
+
+
+class CustomUserManager(BaseUserManager):
+    def authenticate(self, email=None, password=None):
+        try:
+            user = self.get(email=email)
+            if user.check_password(password):
+                return user
+            return None
+        except CustomUser.DoesNotExist:
+            return None
