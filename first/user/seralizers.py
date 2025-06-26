@@ -1,9 +1,9 @@
+from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.validators import RegexValidator
 from rest_framework import serializers
-from .models import CustomUser
-
+User = get_user_model()
 
 class CustomUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -14,11 +14,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = CustomUser
-        fields = [
-            'id', 'view', 'name_firma', 'inn', 'kPP',
-            'Address', 'email', 'director', 'password'
-        ]
+        model = User
+        fields = '__all__'
         extra_kwargs = {
             'password': {'write_only': True},
             'inn': {'validators': [
