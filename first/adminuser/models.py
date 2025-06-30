@@ -1,18 +1,10 @@
 from django.db import models, transaction
 from django.db.models import Sum
 
-from first.user.models import CustomUser
+from user.models import CustomUser
 
 
-class Table(models.Model):
-    name = models.CharField(max_length=100, verbose_name='Стол', default='Стол')
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='Table')
 
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = 'Стол'
 
 
 class Category(models.Model):
@@ -55,7 +47,7 @@ class Products(models.Model):
         verbose_name_plural = 'Товары'
 
 
-class OrderTable(models.Model):
+class Order(models.Model):
     STATUS_CHOICES = [
         ('unpaid', 'Не оплачен'),
         ('cash', 'Наличными'),
@@ -64,7 +56,6 @@ class OrderTable(models.Model):
     ]
 
     date = models.DateTimeField(auto_now_add=True, verbose_name='Дата и время')
-    table = models.ForeignKey('Table', on_delete=models.PROTECT, verbose_name='Стол')
     status = models.CharField(
         max_length=15,
         choices=STATUS_CHOICES,
@@ -85,7 +76,7 @@ class OrderTable(models.Model):
     def save(self, *args, **kwargs):
         # Получаем предыдущий статус, если заказ уже существует
         if self.pk:
-            old_status = OrderTable.objects.get(pk=self.pk).status
+            old_status = Order.objects.get(pk=self.pk).status
         else:
             old_status = None
 
@@ -122,7 +113,7 @@ class OrderTable(models.Model):
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(OrderTable, on_delete=models.CASCADE, verbose_name='Заказ')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name='Заказ')
     product = models.ForeignKey(Products, on_delete=models.PROTECT, verbose_name='Товар')
     count = models.IntegerField(verbose_name='Количество')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена', editable=False)
@@ -145,7 +136,7 @@ class OrderItem(models.Model):
 class CashReceiptOrder(models.Model):
     number = models.CharField('Номер ордера', max_length=50, unique=True)
     date = models.DateTimeField(auto_now_add=True, verbose_name="Дата")
-    order = models.ForeignKey(OrderTable, on_delete=models.CASCADE, related_name='cashreceiptorder_order',
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='cashreceiptorder_order',
                               verbose_name='Заказ', editable=False)
     sum = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма", editable=False)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
@@ -192,7 +183,7 @@ class CashReceiptOrder(models.Model):
 class PaymentOrder(models.Model):
     number = models.CharField('Номер ордера', max_length=50, unique=True)
     date = models.DateTimeField(auto_now_add=True, verbose_name='Дата')
-    order = models.ForeignKey(OrderTable, on_delete=models.CASCADE, related_name='paymentorder_order',
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='paymentorder_order',
                               verbose_name='Заказ', editable=False)
     sum = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сумма', editable=False)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
