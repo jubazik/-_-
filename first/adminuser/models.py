@@ -1,8 +1,6 @@
 from django.db import models, transaction
 from django.db.models import Sum
-
 from user.models import CustomUser
-
 
 
 
@@ -20,7 +18,7 @@ class Category(models.Model):
 
 
 class Type(models.Model):
-    name = models.CharField(max_length=50, verbose_name='Тип')
+    name = models.CharField(max_length=50, verbose_name='Тип', )
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='types')
 
     def __str__(self):
@@ -36,7 +34,7 @@ class Products(models.Model):
     description = models.TextField(null=True, blank=True, verbose_name='Описание товара')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена', blank=True, null=True)
     category = models.ForeignKey("Category", on_delete=models.CASCADE, blank=True, null=True, verbose_name='Категория')
-    type = models.ForeignKey('Type', on_delete=models.PROTECT, default="шт", verbose_name='Тип')
+    type = models.ForeignKey('Type', on_delete=models.PROTECT, verbose_name='Тип')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -54,7 +52,7 @@ class Order(models.Model):
         ('without_cash', 'Без налич'),
         ('canceled', 'Отменено'),
     ]
-
+    number = models.CharField('Номер ордера', max_length=50, unique=True)
     date = models.DateTimeField(auto_now_add=True, verbose_name='Дата и время')
     status = models.CharField(
         max_length=15,
@@ -80,6 +78,20 @@ class Order(models.Model):
         else:
             old_status = None
 
+        if not self.number:
+            last_number = Order.objects.filter(
+                user=self.user
+            ).order_by('-id').values_list('number', flat=True).first()
+            if last_number:
+
+                try:
+                    last_num = int(last_number.split('/')[-1])
+                except (IndexError, ValueError):
+                    last_num = 0
+            else:
+                last_num = 0
+
+            self.number = f'Order/{self.date.strftime("%Y%m%d")}/{last_num + 1}'
         super().save(*args, **kwargs)
 
         # Обрабатываем изменение статуса
