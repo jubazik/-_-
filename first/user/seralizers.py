@@ -1,64 +1,63 @@
-from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth.password_validation import validate_password
-from django.core.validators import RegexValidator
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+
 User = get_user_model()
 
-class CustomUserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(
-        write_only=True,  # Пароль не будет возвращаться в ответах API
-        required=True,
-        validators=[validate_password],
-        style={'input_type': 'password'}  # Для удобства ввода в API интерфейсе
-    )
+
+class UserSerializer(serializers.ModelSerializer):
+    """
+        Сериализатор для чтения данных пользователя.
+    """
 
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'password', 'view',
-            'name_firma', 'inn', 'kPP',
-            'Address', 'director'
-            # добавьте все необходимые поля
+            'id', 'email', 'view', 'name_firma', 'inn',
+            'kPP', 'Address', 'director', 'is_active',       #  fields - какие поля включаются:
+            'inn', 'kPP', 'Address', 'director',
+            'is_staff', 'date_joined', 'last_login'
         ]
-        extra_kwargs = {
-            'password': {'write_only': True},
-            'inn': {'validators': [
-                RegexValidator(
-                    regex=r'^\d{10,12}$',
-                    message='ИНН должен содержать 10 или 12 цифр'
-                )
-            ]}
-        }
-
-    def create(self, validated_data):
-        # Создаем пользователя с хешированным паролем
-        user = User.objects.create(
-            email=validated_data['email'],
-            # Другие обязательные поля
-            view=validated_data.get('view'),
-            name_firma=validated_data.get('name_firma'),
-            inn=validated_data.get('inn'),
-            kPP=validated_data.get('kPP'),
-            Address=validated_data.get('Address'),
-            director=validated_data.get('director'),
-            password=make_password(validated_data['password'])
-        )
-        return user
-
-    def to_representation(self, instance):
-        # Определяем какие поля возвращаются при чтении
-        representation = super().to_representation(instance)
-        # Удаляем пароль (на всякий случай)
-        representation.pop('password', None)
-        return representation
-
-    def validate_inn(self, value):
-        if value and User.objects.filter(inn=value).exists():
-            raise serializers.ValidationError("Пользователь с таким ИНН уже существует")
-        return value
+        read_only_fields = ['id', 'date_joined', 'last_login']
 
 
-class UserSerializer(serializers.ModelSerializer):
-    model = User
-    fields = ['id', 'email', 'view', 'name_firma', 'inn', 'director']
+class UserCreateSerializer(serializers.ModelSerializer):
+    """
+        Сериализатор для создания данных пользователя.
+    """
+    password = serializers.CharField(
+        write_only=True,  # Что делает: Поле используется только для записи (ввода), но не возвращается в ответах API.
+        required=True,  # Что делает: Поле обязательно для заполнения.
+        validators=[validate_password]  # Что делает: Добавляет валидацию сложности пароля.
+
+    )
+    password2 = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'email', 'password', 'password2', 'view', 'name_firma',     # fields - какие поля включаются:
+            'inn', 'kPP', 'Address', 'director'
+        ]
+        def validate(self, attrs):
+            if attrs['password'] != attrs['password2']:#Сравнивает значения полей password и password2
+                raise serializers.ValidationError({"password": "Password fields didn't match."}) # Вызов ошибки при несовпадении:
+            return attrs
+
+        def create(self, validated_data):
+            validated_data.pop('password2')
+            password = validated_data.pop('password')
+            user = User.objects.create(**validated_data)
+            user.set_password(password)
+            user.save()
+            return user
+
+    class UserUpdateSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = User
+            fields = [
+                'view', 'name_firma', 'inn', 'kPP',
+                'Address', 'director', 'is_active'
+            ]
+
+

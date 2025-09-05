@@ -4,7 +4,24 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 
 
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("Поле «Электронная почта» должно быть заполнено.")
+        email = self.normalize_email(email)
+        user = self.model(email=email **extra_fields)
+        user.set_password(password)
+        user.save(self._db)
+        return user
 
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True )
+        if extra_fields.get('is_staff') is not True:
+            return ValueError("«У суперпользователя должен быть параметр is_staff=True».")
+        if extra_fields.get('is_superuser') is not True:
+            return ValueError('Суперпользователь должен иметь is_superuser=True.')
 
 class CustomUser(AbstractUser):
     VIEW = [
@@ -35,6 +52,8 @@ class CustomUser(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
+    objects = CustomUserManager()
+
     def __str__(self):
         return f"фирма: {self.email} - директор: {self.director}"
 
@@ -47,13 +66,3 @@ class UserProfile(models.Model):
     def __str__(self):
         return f'{self.user.email}: Profile'
 
-
-class CustomUserManager(BaseUserManager):
-    def authenticate(self, email=None, password=None):
-        try:
-            user = self.get(email=email)
-            if user.check_password(password):
-                return user
-            return None
-        except CustomUser.DoesNotExist:
-            return None
