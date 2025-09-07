@@ -23,41 +23,57 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserCreateSerializer(serializers.ModelSerializer):
     """
-        Сериализатор для создания данных пользователя.
+    Сериализатор для создания данных пользователя.
     """
     password = serializers.CharField(
-        write_only=True,  # Что делает: Поле используется только для записи (ввода), но не возвращается в ответах API.
-        required=True,  # Что делает: Поле обязательно для заполнения.
-        validators=[validate_password]  # Что делает: Добавляет валидацию сложности пароля.
-
+        write_only=True,
+        required=True,
+        validators=[validate_password]
     )
-    password2 = serializers.CharField(write_only=True, required=True)
+    password2 = serializers.CharField(
+        write_only=True,
+        required=True
+    )
 
     class Meta:
         model = User
         fields = [
-            'email', 'password', 'password2', 'view', 'name_firma',     # fields - какие поля включаются:
+            'email', 'password', 'password2', 'view', 'name_firma',
             'inn', 'kPP', 'Address', 'director'
         ]
-        def validate(self, attrs):
-            if attrs['password'] != attrs['password2']:#Сравнивает значения полей password и password2
-                raise serializers.ValidationError({"password": "Password fields didn't match."}) # Вызов ошибки при несовпадении:
-            return attrs
 
-        def create(self, validated_data):
-            validated_data.pop('password2')
-            password = validated_data.pop('password')
-            user = User.objects.create(**validated_data)
-            user.set_password(password)
-            user.save()
-            return user
+    # ✅ Методы должны быть НА УРОВНЕ КЛАССА, не внутри Meta!
+    def validate(self, attrs):
+        """
+        Проверяет совпадение паролей.
+        """
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({"password": "Password fields didn't match."})
+        return attrs
 
-    class UserUpdateSerializer(serializers.ModelSerializer):
-        class Meta:
-            model = User
-            fields = [
-                'view', 'name_firma', 'inn', 'kPP',
-                'Address', 'director', 'is_active'
-            ]
+    def create(self, validated_data):
+        """
+        Создает пользователя с хэшированным паролем.
+        """
+        # Извлекаем и удаляем служебные поля
+        password = validated_data.pop('password')
+        validated_data.pop('password2')  # Просто удаляем, не используем
+
+        # Создаем пользователя
+        user = User.objects.create(**validated_data)
+
+        # Устанавливаем пароль (автоматически хэшируется)
+        user.set_password(password)
+        user.save()
+
+        return user
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'view', 'name_firma', 'inn', 'kPP',
+            'Address', 'director', 'is_active'
+        ]
 
 

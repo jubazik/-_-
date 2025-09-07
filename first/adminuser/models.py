@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import Sum
 from user.models import CustomUser
@@ -15,6 +16,8 @@ class Category(models.Model):
     class Meta:
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
+        unique_together = ['name', 'user']
+
 
 
 class Type(models.Model):
@@ -22,27 +25,42 @@ class Type(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='types')
 
     def __str__(self):
-        return f"{self.types}"
+        return f"{self.name}"
 
     class Meta:
         verbose_name = 'Тип'
         verbose_name_plural = 'Типы'
+        unique_together = ['name', 'user']
+
 
 
 class Products(models.Model):
     name = models.CharField(max_length=150, verbose_name='Наименования')
     description = models.TextField(null=True, blank=True, verbose_name='Описание товара')
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена', blank=True, null=True)
-    category = models.ForeignKey("Category", on_delete=models.CASCADE, blank=True, null=True, verbose_name='Категория')
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Цена', blank=True, null=True, validators=[MinValueValidator(0)], default=0.00)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, blank=True, null=True, verbose_name='Категория')
     type = models.ForeignKey('Type', on_delete=models.PROTECT, verbose_name='Тип')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.name} {self.description} {self.price} {self.category} {self.type} {self.user}"
 
+    def is_available(self):
+        return self.price is not None and self.price > 0
+
+    def get_display_price(self):
+        return f"{self.price} ₽" if self.price else "Цена не указана"
+
     class Meta:
+        indexes = [
+            models.Index(fields=['user', 'name']),
+            models.Index(fields=['category']),
+            models.Index(fields=['type']),
+        ]
         verbose_name = "Товар"
         verbose_name_plural = 'Товары'
+        unique_together = ['name', 'user']
+
 
 
 class Order(models.Model):
