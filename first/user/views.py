@@ -1,7 +1,3 @@
-from distutils.core import setup_keywords
-from xmlrpc.client import Fault
-
-from django.core.serializers import serialize
 from django.db.models import Q, Count
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
