@@ -211,7 +211,6 @@ class CashReceiptOrder(models.Model):
         verbose_name_plural = "Приходные кассовые ордера"
 
 
-# Create your models here.
 class PaymentOrder(models.Model):
     number = models.CharField('Номер ордера', max_length=50, unique=True)
     date = models.DateTimeField(auto_now_add=True, verbose_name='Дата')
@@ -257,3 +256,22 @@ class PaymentOrder(models.Model):
     class Meta:
         verbose_name = "Платежное поручение"
         verbose_name_plural = "Платежные поручении"
+
+class DisbursementCashOrder(models.Model):
+    number_order = models.CharField(max_length=50, unique=True, verbose_name="Номер ордера")
+    date = models.DateTimeField(auto_created=True, verbose_name='Дата')
+    sum_ = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сумма', editable=False)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+
+
+    def __str__(self):
+        return f"Номер Ордера {self.number_order}: Дата - {self.date}: Сумма - {self.sum_}: Пользователь {self.user}"
+
+
+    def save(self, *args, **kwargs):
+        pass
+
+
+    class Meta:
+        verbose_name = "Расходы кассовый ордер"
+        verbose_name_plural = "Расходные кассовые ордера"

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
-from .models import Category, Type, Products, Order, OrderItem, PaymentOrder, CashReceiptOrder
+from .models import Category, Type, Products, Order, OrderItem, PaymentOrder, CashReceiptOrder, DisbursementCashOrder
 from django.contrib.auth import get_user_model
 
 CustomUser = get_user_model()
@@ -161,3 +161,14 @@ class OrderListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'number', 'date', 'status', 'status_display', 'total_sum']
+
+
+class DisbursementCashOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DisbursementCashOrder
+        fields = [
+            'id', 'number_order', 'date', 'sum_'
+        ]
+        read_only_fields = ['user']
+
+
