@@ -23,7 +23,7 @@ class TypeSerializer(serializers.ModelSerializer):
 class ProductsSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     type_name = serializers.CharField(source='type.name', read_only=True)
-    is_available = serializers.BaseSerializer(read_only=True)
+    is_available = serializers.BooleanField(read_only=True)
     display_price = serializers.CharField(read_only=True)
 
     class Meta:
@@ -62,8 +62,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, required=False)
     total_sum = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    product_list = serializers.CharField(read_only=True)
-    status_displey = serializers.CharField(source='get_status_display', read_only=True)
+    products_list = serializers.CharField(read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     class Meta:
         model = Order
@@ -75,9 +75,9 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = ['number', 'date', 'user', 'total_sum', 'products_list']
 
         def create(self, validated_data):
-            item_data = validated_data.pop('item', [])
+            item_data = validated_data.pop('items', [])
             user = self.context["request"].user
-            while transaction.atomic():
+            with transaction.atomic():
                 order = Order.objects.create(user=user, **validated_data)
                 for item_data in item_data:
                     OrderItem.objects.create(order=order, user=user, **item_data)
@@ -141,20 +141,20 @@ class PaymentOrderSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Платежно поручение можно создать только для безналичного заказа')
         return value
 
-    class CategoryListSerializer(serializers.ModelSerializer):
-        class Meta:
-            model = Category
-            fields = ['id', 'name']
+class CategoryListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name']
 
-    class TypeListSerializer(serializers.ModelSerializer):
-        class Meta:
-            model = Type
-            fields = ['id', 'name']
+class TypeListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Type
+        fields = ['id', 'name']
 
-    class ProductsListSerializer(serializers.ModelSerializer):
-        class Meta:
-            model = Products
-            fields = ['id', 'name', 'price', 'is_aveilable']
+class ProductsListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Products
+        fields = ['id', 'name', 'price', 'is_available']
 
 
 class OrderListSerializer(serializers.ModelSerializer):
